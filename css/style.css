@@ -1,0 +1,50 @@
+.rect {
+    fill: transparent;
+}
+.dotted {
+    fill: red;
+}
+#chart {
+}
+
+#tooltip {
+    border: 1px solid #ccc;
+    position: absolute;
+    padding: 10px;
+    background-color: #fff;
+    display: none;
+    pointer-events: none;
+}
+
+.menu {
+    display: flex;
+    justify-content: center;
+}
+.menu > button {
+    margin: 0 10px;
+}
+
+button {
+    border: none;
+    padding: 10px 15px;
+}
+button:active {
+    color: white;
+    background: black;
+}
+
+.active {
+    color: white;
+    background: black;
+}
+#introduction > h2 {
+    text-align: center;
+    color: white;
+}
+#introduction {
+    border-radius: 20px;
+    flex-grow: 1;
+    margin: 15px;
+    padding: 15px;
+    background: #22eaa7;
+}

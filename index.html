@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <script src='https://d3js.org/d3.v5.min.js'></script>
+    <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="css/style.css" />
+</head>
+<body onload="init()">
+<h1 style="text-align: center" class="mt-3">Ohio Valley June Average Temperature</h1>
+<h4 style="text-align: center">
+    Data Sourced from https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/regional/time-series
+</h4>
+<div class="menu">
+    <button id="prev"><</button>
+    <button id="state1">1895-1935</button>
+    <button id="state2">1936-1976</button>
+    <button id="state3">1977-2023</button>
+    <button id="state4">All Years</button>
+    <button id="next"> > </button>
+</div>
+<div style="display: flex">
+    <div id="chart" >
+        <div id="tooltip">
+            <div class="temp"></div>
+            <div class="date"></div>
+        </div>
+    </div>
+    <div id="introduction">
+        <h2 id="years"></h2>
+        <p id="content">This is content text.</p>
+    </div>
+</div>
+<script>
+  function clear() {
+    document.getElementById('chart').innerHTML = ` <div id="tooltip">
+        <div class="temp"></div>
+        <div class="date"></div>
+    </div>`
+  }
+  function draw(dataset) {
+    const xAccessor = d => Number(d.Date)
+    const yAccessor = d => Number(d.Value)
+
+    // Dimensions
+    let dimensions = {
+      width: 1000,
+      height: 500,
+      margins: 50,
+    };
+
+    dimensions.ctrWidth = dimensions.width - dimensions.margins * 2
+    dimensions.ctrHeight = dimensions.height - dimensions.margins * 2
+
+    // Draw Image
+    const svg = d3.select('#chart')
+      .append("svg")
+      .attr("width", dimensions.width)
+      .attr("height", dimensions.height)
+
+    const container = svg.append("g") // <g>
+      .attr(
+        "transform",
+        `translate(${dimensions.margins}, ${dimensions.margins})`
+      );
+
+    const tooltip = d3.select("#tooltip");
+    const tooltipDot = container
+      .append("circle")
+      .attr("r", 5)
+      .attr("fill", "#fc8781")
+      .attr("stroke", "black")
+      .attr("stroke-width", 2)
+      .style("opacity", 0)
+      .style('pointer-events', 'none')
+
+    // Scales
+    const yScale = d3.scaleLinear()
+      .domain(d3.extent(dataset, d => Math.max(d.Value, d.Anomaly)))
+      .range([dimensions.ctrHeight, 0]);
+
+    const xScale = d3.scaleLinear()
+      .domain(d3.extent(data.dataset, d => d.Date))
+      .range([0, dimensions.ctrWidth]);
+
+    const lineGenerator = d3.line()
+      .x((d) => xScale(xAccessor(d)))
+      .y((d) => yScale(yAccessor(d)))
+
+    container.append('path')
+      .datum(dataset)
+      .attr('d', lineGenerator)
+      .attr('fill', "none")
+      .attr('stroke', "#30475e")
+      .attr('stroke-width', 2)
+      .on('touchmouse mousemove', function(event){
+        const mousePosition = d3.mouse(this);
+
+      })
+      .on('mouseleave', function(event){
+
+      });
+
+    container.append('rect')
+      .attr('width', dimensions.ctrWidth)
+      .attr('height', dimensions.ctrHeight)
+      .style('opacity', 0)
+      .on('mousemove', function (event) {
+        const mousePosition = d3.mouse(this);
+        const date = xScale.invert(mousePosition[0]);
+        const dateBisector = d3.bisector(xAccessor).left;
+        const bisectionIndex = dateBisector(dataset, date);
+        const hoveredIndexData = dataset[bisectionIndex - 1];
+        tooltipDot.style('opacity', 1)
+          .attr('cx', xScale(xAccessor(hoveredIndexData)))
+          .attr('cy', yScale(yAccessor(hoveredIndexData)));
+
+        tooltip
+          .style("display", "block")
+          .style("top", `${yScale(yAccessor(hoveredIndexData)) + 100}px`)
+          .style("left", `${xScale(xAccessor(hoveredIndexData))}px`);
+
+        tooltip.select(".temp").text(`${yAccessor(hoveredIndexData)}°C`);
+
+        const dateFormatter = d3.timeFormat("%B %-d, %Y");
+        console.log(hoveredIndexData)
+        tooltip.select(".date").text("Date: " + hoveredIndexData.Date.slice(0, 4) + ", " + hoveredIndexData.Date.slice(4))
+      })
+      .on("mouseleave", function () {
+        tooltipDot.style("opacity", 0);
+        tooltip.style("display", "none");
+      });
+
+    const yAxis = d3.axisLeft(yScale)
+      .tickFormat(d => d);
+    container.append('g')
+      .classed('yAxis', true)
+      .call(yAxis);
+
+    const xAxis = d3.axisBottom(xScale)
+      .tickFormat(d => {
+        return String(d).slice(0, 4);
+      })
+
+    container.append('g')
+      .classed('xAxis', true)
+      .style('transform', `translateY(${dimensions.ctrHeight}px)` )
+      .call(xAxis);
+
+
+
+    container.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("x", 0 - dimensions.height / 2)
+      .attr("y", - dimensions.margins + 15)
+      .style("text-anchor", "middle")
+      .text("Ohio Valley June Average Temperature");
+  }
+  const data = {
+    state: 0,
+    dataset: []
+  };
+
+  const areas = [
+    [1895, 1935],
+    [1936, 1976],
+    [1977, 2023],
+    [1895, 2023]
+  ];
+
+  const prev = document.querySelector('#prev');
+  const state1 = document.querySelector('#state1');
+  const state2 = document.querySelector('#state2');
+  const state3 = document.querySelector('#state3');
+  const state4 = document.querySelector('#state4');
+  const next = document.querySelector('#next');
+
+  function render() {
+    clear();
+    const [from, to] = areas[data.state];
+    const drawData = [];
+    for (let item of data.dataset) {
+      const year = Number(item.Date.slice(0,4));
+      if (year >= from && year <= to) {
+        drawData.push(item);
+      }
+    }
+    draw(drawData);
+
+    state1.classList.remove('active');
+    state2.classList.remove('active');
+    state3.classList.remove('active');
+    state4.classList.remove('active');
+
+    document.querySelector(`#state${data.state + 1}`)
+      .classList.add('active');
+
+    document.querySelector('#years').innerHTML = from + '-' + to;
+
+    const contents = [
+      `The period where the lowest temperature had been hit was in 1903. 
+       This is not surprising because during this time the US has just begun the industrial revolution, and the mass effect of manufacturing machines has just started to make an impact. <br/><br/>
+       Combined with the Great Depression period, this time interval's average temperature is relatively lower than the others. <br/><br/>
+       But we have seen it historically hit 77 degrees for the first time in 1934, which also shows a delayed effect of the carbon releases. <br/><br/> ` ,
+      `This period, surprisingly, has the 2 lowest temperatures in 1955 and 1974 throughout the entire period chosen for this project. <br/><br/>
+       It definitely said something about the non-correlational relationship between global warming and the mass effects of manufacturing industries. <br/><br/>
+       In 1955, the US has just begun to prepare for the Cold War and started mass projects in city constructions and foreign warfare firearm manufactures.<br/><br/>
+       These projects will inevitably produce environmental impacts, even to a much larger degree compared to developing nations’ projects during the 21st century alleged by the media. <br/><br/>
+       For the 1974 one, the manufacturing industries had not been removed from the local soil yet. <br/><br/>
+       In fact, there should have been a mass increase in family-use electronics such as the fridge and the microwave. <br/><br/>
+       However, the trend still goes against what we usually expect and hear from the media today. <br/><br/>
+       Not only this, but we witnessed a less frequent trend of temperatures hitting over the 73 degrees line. <br/><br/>
+       This clearly says something and deserves deeper investigation. <br/><br/> `,
+      `Following from this new perspective, from 1977 to 2023, aka neo-liberalism starting to shine, we did not see any 77 degrees. <br/><br/>
+       However, only one more lowest temperature point has been observed, and even more above-73-degree data have come to our landscape. <br/><br/>
+       Not only that, the average fluctuation scope ranges from 70 degrees to 73 degrees, a much more extreme scope than the previous period marks. <br/><br/> `,
+      `Overall, we can see that the media’s so-called mass greenhouse effects caused by developing nations did not seem that correlational, and this has been somehow proved by America’s own transitioning of the manufacturing industries. <br/><br/>
+       You can see that the overall fluctuations and the shape of them seem rather general and systematically unanimous. <br/><br/>
+       We probably should dig deeper from now on when facing such claims that developing nations are the criminals for an increasing global temperature as the US’ own history contradicts with such allegation. <br/><br/> `
+    ];
+    const colors = [
+      '#22eaa7',
+      '#fa94e9',
+      '#0e95ea',
+      '#787AB7'
+    ];
+    const content = contents[data.state];
+    const color = colors[data.state];
+    document.querySelector('#content').innerHTML = content;
+    document.querySelector('#introduction').style.background = color;
+  }
+
+  async function init() {
+
+
+    // Data
+    data.dataset = await d3.csv('data.csv')
+    render();
+
+    prev.addEventListener('click', () => {
+      if (data.state > 0) {
+        data.state --;
+        render();
+      }
+    })
+    next.addEventListener('click', () => {
+      if (data.state < 3) {
+        data.state ++;
+        render();
+      }
+    })
+    state1.addEventListener('click', () => {
+      data.state = 0;
+      render();
+    });
+    state2.addEventListener('click', () => {
+      data.state = 1;
+      render();
+    })
+    state3.addEventListener('click', () => {
+      data.state = 2;
+      render();
+    })
+    state4.addEventListener('click', () => {
+      data.state = 3;
+      render();
+    })
+
+  }
+
+
+
+</script>
+</body>
+</html>
